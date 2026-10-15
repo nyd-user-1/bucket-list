@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nysgpt-bucket-list"
+version = "0.1.0"
+description = "Bucket List: lightweight search for S3. One command sweeps every bucket in an AWS account into a single offline HTML file with drill-down, storage-class cost estimates, largest files, and instant search."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Brendan Stanton", email = "brendan@nysgpt.com" }]
+keywords = ["aws", "s3", "inventory", "storage", "cost", "dashboard", "cli", "bucket", "audit"]
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Systems Administration",
+  "Topic :: Utilities",
+]
+dependencies = []
+
+[project.scripts]
+bucket-list = "bucket_list.cli:entry"
+
+[project.urls]
+Homepage = "https://github.com/nyd-user-1/bucket-list"
+Source = "https://github.com/nyd-user-1/bucket-list"
+Issues = "https://github.com/nyd-user-1/bucket-list/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bucket_list"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/bucket_list", "tests", "README.md", "LICENSE", "pyproject.toml"]

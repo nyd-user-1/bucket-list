@@ -1,0 +1,37 @@
+{
+  "name": "@nysgpt/bucket-list",
+  "version": "0.1.0",
+  "description": "Bucket List \u2014 lightweight search for S3. One command sweeps every bucket in an AWS account into a single offline HTML file: drill-down by bucket and folder, object counts, storage-class costs, largest files, and instant search.",
+  "bin": {
+    "bucket-list": "bin/bucket-list.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "aws",
+    "s3",
+    "inventory",
+    "storage",
+    "cost",
+    "dashboard",
+    "cli",
+    "bucket",
+    "audit"
+  ],
+  "author": "Brendan Stanton <brendan@nysgpt.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nyd-user-1/bucket-list.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

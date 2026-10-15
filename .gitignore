@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+*.tsbuildinfo
+
+# generated reports and private annotations
+bucket-list.html
+bucket-list-*.html
+bucket-list.notes.json
+
+# python
+__pycache__/
+*.pyc
+python/dist/
+python/build/
+*.egg-info/
+.venv/

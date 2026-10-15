@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# bucket-list-app — the one front door, same shape as HQ's `hq`.
+#
+#   bucket-list-app             macOS: open the native "Bucket List.app",
+#                               assembling it first when it's missing or older
+#                               than the sources in this repo
+#   bucket-list-app --rebuild   reassemble the app, then open it
+#   bucket-list-app --browser   run the server here and open it in the browser
+#                               (any platform; Ctrl-C stops it)
+set -uo pipefail
+
+MODE="auto"
+for a in "$@"; do
+  case "$a" in
+    --browser) MODE="browser" ;;
+    --rebuild) MODE="rebuild" ;;
+  esac
+done
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  dir="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [ "${SOURCE#/}" = "$SOURCE" ] && SOURCE="$dir/$SOURCE"
+done
+APPDIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+REPO="$(cd "$APPDIR/.." && pwd)"
+APP="${BUCKET_LIST_APP_INSTALL:-$HOME/Applications}/Bucket List.app"
+PORT="${BUCKET_LIST_PORT:-3011}"
+
+stale() {  # app missing, or any source newer than the assembled bundle
+  [ ! -d "$APP" ] && return 0
+  [ -n "$(find "$APPDIR/server.js" "$APPDIR/ui" "$APPDIR/shell" "$REPO/lib" -newer "$APP/Contents/Info.plist" -print -quit 2>/dev/null)" ]
+}
+
+if [ "$MODE" != "browser" ] && [ "$(uname -s)" = "Darwin" ]; then
+  if [ "$MODE" = "rebuild" ] || stale; then
+    bash "$APPDIR/scripts/make-macos-app.sh" || { echo "native build failed — falling back to the browser."; MODE="browser"; }
+  fi
+  if [ "$MODE" != "browser" ]; then
+    open "$APP"
+    echo "Bucket List is open in its own window. (⌘B inside the app opens the same UI in the browser.)"
+    exit 0
+  fi
+fi
+
+BUCKET_LIST_PORT="$PORT" node "$APPDIR/server.js" &
+PID=$!
+trap 'kill $PID 2>/dev/null' EXIT INT TERM
+for _ in $(seq 1 40); do
+  curl -sf -o /dev/null --max-time 1 "http://localhost:$PORT/" && break
+  sleep 0.25
+done
+if command -v open >/dev/null 2>&1; then open "http://localhost:$PORT/"
+elif command -v xdg-open >/dev/null 2>&1; then xdg-open "http://localhost:$PORT/"; fi
+echo "Bucket List is running on http://localhost:$PORT/ (Ctrl-C to stop)"
+wait $PID

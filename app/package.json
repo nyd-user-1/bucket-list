@@ -1,0 +1,19 @@
+{
+  "name": "bucket-list-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bucket List desktop app: a native macOS window over a zero-dependency local server that drives the shared engine in ../lib.",
+  "license": "MIT",
+  "author": "Brendan Stanton <brendan@nysgpt.com>",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "bucket-list-app": "bin/bucket-list-app"
+  },
+  "scripts": {
+    "app": "bash bin/bucket-list-app",
+    "app:rebuild": "bash bin/bucket-list-app --rebuild",
+    "browser": "bash bin/bucket-list-app --browser"
+  }
+}
