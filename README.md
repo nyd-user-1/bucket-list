@@ -15,7 +15,7 @@ Three ways to run it, all producing the same file:
 |---|---|---|
 | **npm** | `npx @nysgpt/bucket-list --open` | Node.js 18+ |
 | **PyPI** | `pipx run --spec nysgpt-bucket-list bucket-list --open` | Python 3.9+ |
-| **Desktop app** | `app/bin/bucket-list-app` from a clone of this repo | macOS 12+, Node.js 18+, Xcode CLT |
+| **Desktop app** | [Download for macOS](https://github.com/nyd-user-1/bucket-list/releases/latest/download/Bucket-List-macOS.zip), or `app/bin/bucket-list-app` from a clone | macOS 12+, Node.js 18+ |
 
 The PyPI package is `nysgpt-bucket-list`; like the npm package, it installs a
 `bucket-list` command (`pipx install nysgpt-bucket-list`). The desktop app

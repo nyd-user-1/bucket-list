@@ -83,6 +83,12 @@
   .viztip { position: fixed; z-index: 10; background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px; font-size: 12.5px; color: var(--text-1); pointer-events: none; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: none; white-space: nowrap; }
   .about { font-size: 13.5px; color: var(--text-2); margin: 0; }
   :root { color-scheme: dark; --page:#0d0d0d; --surface-1:#1a1a19; --text-1:#f0efec; --text-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10); --series-1:#3987e5; --good:#0ca30c; --warn:#fab219; --chip-keep-bg:rgba(12,163,12,0.16); --chip-review-bg:rgba(250,178,25,0.14); --chip-disp-bg:rgba(137,135,129,0.18); }
+  html { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.26); }
+  ::-webkit-scrollbar-corner { background: transparent; }
 </style>
 </head>
 <body>

@@ -10,6 +10,12 @@ so the dashboard in the window is the same HTML file `bucket-list` writes.
 
 ## Run
 
+Download `Bucket-List-macOS.zip` from the
+[latest release](https://github.com/nyd-user-1/bucket-list/releases/latest),
+unzip, and move `Bucket List.app` to Applications. It's ad-hoc signed, not
+notarized: the first open is blocked, then System Settings → Privacy & Security
+→ Open Anyway lets it run. It needs Node.js 18+ and the AWS CLI on the Mac.
+
 From the repo:
 
 ```
@@ -23,10 +29,9 @@ The app is assembled into `~/Applications/Bucket List.app` (override with
 Spotlight. It serves on `localhost:3011` (`BUCKET_LIST_PORT` to change; HQ
 uses 3009).
 
-Requirements: macOS 12+, Node.js 18+, Xcode Command Line Tools (`swiftc`, used
-once to compile the window), and the AWS CLI v2 signed in. The app isn't
-signed, notarized, or packaged as an installer; it runs on the Mac that
-assembled it.
+Requirements: macOS 12+, Node.js 18+, the AWS CLI v2 signed in, and (to build
+from source) Xcode Command Line Tools for `swiftc`. `app/scripts/package-release.sh`
+builds the universal, ad-hoc-signed release zip into `app/dist/`.
 
 ## Flow
 
@@ -58,6 +63,7 @@ app/
   ui/index.html                check / estimate / sweep / dashboard screens
   shell/bucket-list-shell.swift  the native window (HQ's shell, trimmed)
   scripts/make-macos-app.sh    assembles the .app (copies server, UI, ../lib; compiles the shell)
+  scripts/package-release.sh   zips it for a GitHub release
   bin/bucket-list-app          the front door
 ```
 

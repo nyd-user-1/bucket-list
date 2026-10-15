@@ -5,7 +5,7 @@
 # shared engine (../lib), and runs them with the system's node.
 #
 # Re-run after editing anything under app/ or lib/ to refresh the app.
-# Not signed or notarized; it's meant to run on the Mac that built it.
+# Ad-hoc signed, not notarized: downloaded copies need "Open Anyway" once.
 set -euo pipefail
 
 APPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -88,8 +88,18 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 PLIST
 sed -i '' "s/__VERSION__/$VERSION/g" "$APP/Contents/Info.plist"
 
-swiftc -O "$SWIFT" -o "$APP/Contents/MacOS/bucket-list" -framework AppKit -framework WebKit
+# universal binary (Apple silicon + Intel) so the release zip runs on either
+BIN="$(mktemp -d)"
+for arch in arm64 x86_64; do
+  swiftc -O -target "$arch-apple-macos12.0" "$SWIFT" -o "$BIN/$arch" -framework AppKit -framework WebKit 2>&1 | grep -v -E "warning:|Selector|^ *[0-9]* \||^ *\||^\s*$" || true
+done
+lipo -create "$BIN/arm64" "$BIN/x86_64" -output "$APP/Contents/MacOS/bucket-list"
 chmod +x "$APP/Contents/MacOS/bucket-list"
+
+# Ad-hoc signature over the whole bundle. Not a Developer ID: a downloaded copy
+# still needs "Open Anyway" in System Settings once, but it opens instead of
+# reporting itself as damaged.
+codesign --force --deep --sign - "$APP" >/dev/null 2>&1 && echo "ad-hoc signed" || echo "WARN: codesign failed"
 
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 [ -x "$LSREGISTER" ] && "$LSREGISTER" -f "$APP" || true

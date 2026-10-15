@@ -2,7 +2,8 @@
 "use strict";
 // Renders site/demo.html: a real Bucket List report (lib/render.js) over a
 // fictional account, so the landing page can embed a working drill-down and
-// search without publishing anyone's bucket names. Forced dark to match the page.
+// search without publishing anyone's bucket names. Forced dark, with a minimal
+// scrollbar, to sit inside the page's frame.
 //   node site/make-demo.js
 const fs = require("fs");
 const path = require("path");
@@ -128,6 +129,15 @@ const notes = {};
 let html = render({ results, stats, notes, account: "123456789012" });
 // force the dark palette regardless of the visitor's OS setting
 const dark = /@media \(prefers-color-scheme: dark\) \{ (:root \{[^}]*\}) \}/.exec(html)[1];
-html = html.replace("</style>", "  " + dark + "\n</style>");
+// minimal overlay-style scrollbar: thin, rounded, no track
+const scroll = [
+  "  html { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }",
+  "  ::-webkit-scrollbar { width: 10px; height: 10px; }",
+  "  ::-webkit-scrollbar-track { background: transparent; }",
+  "  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }",
+  "  ::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.26); }",
+  "  ::-webkit-scrollbar-corner { background: transparent; }",
+].join("\n");
+html = html.replace("</style>", "  " + dark + "\n" + scroll + "\n</style>");
 fs.writeFileSync(path.join(__dirname, "demo.html"), html);
 console.log("wrote site/demo.html", html.length, "bytes");

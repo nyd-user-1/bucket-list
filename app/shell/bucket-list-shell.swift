@@ -11,12 +11,22 @@ import WebKit
 let PORT = 3011
 let URLSTR = "http://localhost:\(PORT)/"
 
-func resolveNode() -> String {
+// GUI apps get a minimal PATH: check the usual install locations, then ask the
+// user's login shell (covers nvm, fnm, volta, asdf).
+func resolveNode() -> String? {
     let fm = FileManager.default
-    for c in ["/usr/local/bin/node", "/opt/homebrew/bin/node", "/usr/bin/node"] {
+    for c in ["/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node"] {
         if fm.isExecutableFile(atPath: c) { return c }
     }
-    return "/usr/local/bin/node"
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/bin/zsh")
+    p.arguments = ["-lic", "command -v node"]
+    let out = Pipe(); p.standardOutput = out; p.standardError = Pipe()
+    do { try p.run() } catch { return nil }
+    p.waitUntilExit()
+    let path = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+        .split(separator: "\n").last.map(String.init)?.trimmingCharacters(in: .whitespaces) ?? ""
+    return fm.isExecutableFile(atPath: path) ? path : nil
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate,
@@ -34,14 +44,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate,
     func startServer() {
         killPort(PORT)   // reclaim the port from any orphaned server so a fresh
                          // launch always serves the current bundle
+        guard let node = resolveNode() else {
+            let a = NSAlert()
+            a.messageText = "Bucket List needs Node.js"
+            a.informativeText = "Install Node.js 18 or later (nodejs.org, or `brew install node`), then open Bucket List again. The AWS CLI is required too."
+            a.addButton(withTitle: "Quit")
+            a.runModal()
+            NSApp.terminate(nil)
+            return
+        }
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: resolveNode())
+        p.executableURL = URL(fileURLWithPath: node)
         p.arguments = ["server.js"]
         p.currentDirectoryURL = URL(fileURLWithPath: engineDir())
         var env = ProcessInfo.processInfo.environment
         env["BUCKET_LIST_PORT"] = String(PORT)
         env["HOSTNAME"] = "127.0.0.1"
-        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        let nodeDir = (node as NSString).deletingLastPathComponent
+        env["PATH"] = "\(nodeDir):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         p.environment = env
         do { try p.run(); server = p } catch { NSLog("Bucket List: server start failed: \(error)") }
     }

@@ -34,6 +34,10 @@
   .shell-chips{position:absolute;top:-9px;left:14px;display:flex;gap:4px;z-index:20}
   .shell-chip{font-family:var(--mono);font-size:12px;line-height:1;background:#2563eb;padding:6px 9px;color:#fff}
   .shell-chip.arrow{font-weight:700}
+  .shell-gh{position:absolute;top:-9px;right:14px;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:#2563eb;color:#fff;padding:5px 7px;line-height:0;transition:background .15s}
+  .shell-gh:hover{background:#3b82f6}
+  .shell-gh svg{width:14px;height:14px}
   .scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;border-radius:10px;scrollbar-width:none}
   .scroller::-webkit-scrollbar{display:none}
 
@@ -45,13 +49,6 @@
   @media(min-width:640px){.hero-inner{padding-top:112px}}
   h1{margin:0 auto;text-align:center;font-size:clamp(30px,5.4vw,54px);line-height:1.12;letter-spacing:-.02em;font-weight:750;color:var(--fg)}
   h1 em{font-style:normal;color:#34d399}
-  .hero-sub{margin:20px auto 0;max-width:38rem;text-align:center;font-size:17px;line-height:1.625;color:var(--sub)}
-  .hero-new{margin-top:22px;display:flex;justify-content:center;align-items:baseline;gap:12px;font-size:15px}
-  .hero-new b{color:var(--fg);font-weight:510}
-  .hero-new span{color:var(--sub);transition:color .15s}
-  .hero-new:hover span{color:var(--z300)}
-  .hero-new i{font-style:normal;display:inline-block;transition:transform .15s;color:var(--sub)}
-  .hero-new:hover i{transform:translateX(2px)}
 
   /* install copy blocks */
   .install-row{margin-top:32px;display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -63,11 +60,13 @@
   .copyblock .lead{display:flex;min-width:0;align-items:center;gap:10px}
   .copyblock .dollar{user-select:none;color:var(--z600)}
   .copyblock .cmd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--z200)}
-  .copyblock .act{flex-shrink:0;font-size:11px;text-transform:uppercase;letter-spacing:.025em;color:var(--z600)}
-  .copyblock:hover .act{color:var(--z400)}
   .copyblock.copied{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.1)}
   .copyblock.copied .cmd{color:#6ee7b7}
-  .copyblock.copied .act{color:#34d399}
+  .dlbtn{display:inline-flex;align-items:center;justify-content:center;gap:9px;margin-top:6px;border-radius:10px;
+    background:var(--fg);color:#09090b;padding:12px 22px;font-size:15px;font-weight:590;transition:background .15s}
+  .dlbtn:hover{background:var(--z300)}
+  .dlbtn:active{transform:scale(.985)}
+  .dlbtn svg{width:15px;height:15px;margin-top:-2px}
 
   /* app-shot frame */
   .frame-wrap{position:relative;margin:52px auto 0;width:100%;max-width:1152px;padding-bottom:80px}
@@ -137,25 +136,27 @@
     <span class="shell-chip">s3://</span>
     <span class="shell-chip">⌄</span>
   </div>
+  <a class="shell-gh" href="https://github.com/nyd-user-1/bucket-list" aria-label="Bucket List on GitHub">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
   <div class="scroller">
 
     <section id="top" class="px" style="overflow:hidden">
       <div class="hero-inner">
         <h1>Bucket List<br><em>Lightweight search for S3.</em></h1>
-        <p class="hero-sub">One sweep of an AWS account becomes a single offline HTML file: every bucket and folder, what it costs, what's largest, and instant search across all of it.</p>
 
         <div class="install-row">
-          <button class="copyblock" data-cmd="npx @nysgpt/bucket-list --open">
-            <span class="lead"><span class="dollar">$</span><span class="cmd">npx @nysgpt/bucket-list --open</span></span><span class="act">npm</span>
+          <button class="copyblock" data-cmd="npm i -g @nysgpt/bucket-list">
+            <span class="lead"><span class="dollar">$</span><span class="cmd">npm i -g @nysgpt/bucket-list</span></span>
           </button>
-          <button class="copyblock" data-cmd="uvx --from nysgpt-bucket-list bucket-list --open">
-            <span class="lead"><span class="dollar">$</span><span class="cmd">uvx --from nysgpt-bucket-list bucket-list --open</span></span><span class="act">pypi</span>
+          <button class="copyblock" data-cmd="pipx install nysgpt-bucket-list">
+            <span class="lead"><span class="dollar">$</span><span class="cmd">pipx install nysgpt-bucket-list</span></span>
           </button>
-          <button class="copyblock" data-cmd="git clone https://github.com/nyd-user-1/bucket-list && bucket-list/app/bin/bucket-list-app">
-            <span class="lead"><span class="dollar">$</span><span class="cmd">git clone https://github.com/nyd-user-1/bucket-list &amp;&amp; bucket-list/app/bin/bucket-list-app</span></span><span class="act">macOS app</span>
-          </button>
+          <a class="dlbtn" href="https://github.com/nyd-user-1/bucket-list/releases/latest/download/Bucket-List-macOS.zip">
+            <svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+            Download for macOS
+          </a>
         </div>
-        <a class="hero-new" href="https://github.com/nyd-user-1/bucket-list"><b>GitHub</b><span>nyd-user-1/bucket-list</span><i>→</i></a>
       </div>
 
       <div class="frame-wrap">
