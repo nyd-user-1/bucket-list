@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bucket List — lightweight search for S3</title>
+<meta name="description" content="Bucket List sweeps every S3 bucket in an AWS account into one offline HTML file: drill down by bucket and folder, storage-class cost estimates, largest files, and instant search. Read-only, through the AWS CLI.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪣</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
+<style>
+  /* palette and chrome from HQ's landing page (hq/site/index.html) */
+  :root{
+    --bg:#18181b;--pane:#09090b;
+    --z50:#fafafa;--z100:#f4f4f5;--z200:#e4e4e7;--z300:#d4d4d8;--z400:#a1a1aa;
+    --z500:#71717a;--z600:#52525b;--z700:#3f3f46;--z800:#27272a;--z900:#18181b;
+    --fg:#f7f8f8;--sub:#8a8f98;
+    --ink-blue:#60a5fa;--ink-green:#4ade80;--ink-amber:#fbbf24;--ink-orange:#fb923c;
+    --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --sans:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--z100);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;background:none;border:0;cursor:pointer;color:inherit}
+
+  /* the app shell: fixed dashed boundary; the page scrolls inside it */
+  .shell{position:fixed;inset:30px;border-radius:10px}
+  .shell-line{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:15}
+  .shell-line rect{fill:none;stroke:#2563eb;stroke-width:1;stroke-dasharray:4 5}
+  @media(max-width:639px){.shell{inset:14px}}
+  .shell-chips{position:absolute;top:-9px;left:14px;display:flex;gap:4px;z-index:20}
+  .shell-chip{font-family:var(--mono);font-size:12px;line-height:1;background:#2563eb;padding:6px 9px;color:#fff}
+  .shell-chip.arrow{font-weight:700}
+  .scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;border-radius:10px;scrollbar-width:none}
+  .scroller::-webkit-scrollbar{display:none}
+
+  .px{padding-left:20px;padding-right:20px}
+  @media(min-width:640px){.px{padding-left:32px;padding-right:32px}}
+
+  /* hero */
+  .hero-inner{max-width:1152px;margin:0 auto;padding-top:80px}
+  @media(min-width:640px){.hero-inner{padding-top:112px}}
+  h1{margin:0 auto;text-align:center;font-size:clamp(30px,5.4vw,54px);line-height:1.12;letter-spacing:-.02em;font-weight:750;color:var(--fg)}
+  h1 em{font-style:normal;color:#34d399}
+  .hero-sub{margin:20px auto 0;max-width:38rem;text-align:center;font-size:17px;line-height:1.625;color:var(--sub)}
+  .hero-new{margin-top:22px;display:flex;justify-content:center;align-items:baseline;gap:12px;font-size:15px}
+  .hero-new b{color:var(--fg);font-weight:510}
+  .hero-new span{color:var(--sub);transition:color .15s}
+  .hero-new:hover span{color:var(--z300)}
+  .hero-new i{font-style:normal;display:inline-block;transition:transform .15s;color:var(--sub)}
+  .hero-new:hover i{transform:translateX(2px)}
+
+  /* install copy blocks */
+  .install-row{margin-top:32px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .copyblock{display:flex;max-width:100%;align-items:center;justify-content:space-between;gap:16px;min-width:min(100%,520px);
+    border-radius:10px;border:1px solid var(--z800);background:rgba(24,24,27,.7);
+    padding:12px 16px;text-align:left;font-family:var(--mono);font-size:14px;transition:border-color .15s,background .15s}
+  .copyblock:hover{border-color:var(--z500);background:#27272a}
+  .copyblock:active{transform:scale(.985)}
+  .copyblock .lead{display:flex;min-width:0;align-items:center;gap:10px}
+  .copyblock .dollar{user-select:none;color:var(--z600)}
+  .copyblock .cmd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--z200)}
+  .copyblock .act{flex-shrink:0;font-size:11px;text-transform:uppercase;letter-spacing:.025em;color:var(--z600)}
+  .copyblock:hover .act{color:var(--z400)}
+  .copyblock.copied{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.1)}
+  .copyblock.copied .cmd{color:#6ee7b7}
+  .copyblock.copied .act{color:#34d399}
+
+  /* app-shot frame */
+  .frame-wrap{position:relative;margin:52px auto 0;width:100%;max-width:1152px;padding-bottom:80px}
+  .frame{position:relative;border-radius:12px;padding:8px;background:#090a0b;box-shadow:0 7px 32px #00000059}
+  .frame::before{content:"";position:absolute;inset:0;border-radius:12px;background:#101112;border:1px solid #ffffff14}
+  .view{position:relative;overflow:hidden;border-radius:7px;background:#0d0d0d;border:1px solid #ffffff14;box-shadow:0 0 0 2px #0000001a}
+  .apphead{position:relative;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ffffff0d;padding:10px 16px;font-family:var(--mono);font-size:11px;background:#121314}
+  .apphead .dot{width:8px;height:8px;border-radius:999px;background:#22c55e}
+  .apphead .n1{color:#d0d6e0}.apphead .sep{color:#62666d}.apphead .n2{color:#8a8f98}
+  .apphead .live{margin-left:auto;color:#62666d}
+  .demo{display:block;width:100%;height:min(72vh,720px);border:0;background:#0d0d0d}
+
+  /* sections */
+  .dash-inner{max-width:1152px;margin:0 auto;padding:80px 0}
+  h2.dash{max-width:42rem;font-size:clamp(28px,4vw,38px);line-height:1.08;letter-spacing:-.02em;font-weight:590;color:var(--fg)}
+  .dash-sub{margin-top:12px;max-width:36rem;font-size:16px;line-height:1.625;color:var(--z500)}
+
+  /* terminal pane (HQ's TerminalPane anatomy) */
+  .wall{margin-top:40px;display:grid;gap:24px}
+  @media(min-width:1024px){.wall{grid-template-columns:1fr 1fr}}
+  .pane{position:relative;display:flex;min-width:0;flex-direction:column;border-radius:8px;border:1px dashed;
+    background:var(--pane);padding:14px;padding-top:24px;font-family:var(--mono)}
+  .pane-chip{position:absolute;top:-10px;left:16px;z-index:20;display:inline-flex;align-items:center;gap:6px;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff}
+  .pane-chip i{width:6px;height:6px;border-radius:999px;background:rgba(255,255,255,.9)}
+  .pane-head{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--z800);padding-bottom:10px;font-size:11px}
+  .pane-head .dot{width:8px;height:8px;border-radius:999px}
+  .pane-head .proj{color:var(--z300)}
+  .pane-head .sess{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pane-body{display:flex;flex-direction:column;gap:8px;padding:12px 0;font-size:11px;line-height:1.625}
+  .prompt{border-radius:6px;background:rgba(24,24,27,.4);padding:8px 10px;color:var(--z400)}
+  .prompt .you{color:var(--ink-blue)}
+  .step{display:flex;align-items:center;gap:8px;border-radius:6px;border:1px solid rgba(39,39,42,.8);background:rgba(24,24,27,.3);padding:8px 10px}
+  .step .a{color:var(--z600)}.step .k{color:var(--z500);flex-shrink:0}
+  .step .t{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--z300)}
+  .pane-status{margin-top:auto;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(39,39,42,.7);padding-top:10px;font-size:11px}
+  .pane-status .g{color:var(--z500)}
+
+  .term{margin-top:40px;border-radius:8px;border:1px dashed #2563eb;background:var(--pane);padding:22px 22px 18px;font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--z300);overflow-x:auto}
+  .term .c{color:var(--z600)}.term .b{color:var(--fg)}.term .ok{color:#34d399}.term .y{color:var(--ink-amber)}.term .dim{color:var(--z500)}
+  .term pre{font:inherit;white-space:pre}
+
+  /* principle strip */
+  .principle{border-top:1px dashed var(--z700);border-bottom:1px dashed var(--z700);padding:44px 20px;text-align:center}
+  .principle .big{font-family:var(--mono);font-size:clamp(15px,2.4vw,22px);color:var(--fg)}
+  .principle .big .w{color:var(--z600)}
+
+  /* footer */
+  .foot-inner{max-width:1152px;margin:0 auto;display:flex;flex-direction:column;gap:24px;padding:48px 20px}
+  @media(min-width:640px){.foot-inner{flex-direction:row;align-items:center;justify-content:space-between;padding:48px 32px}}
+  .foot-brand{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:14px;color:var(--z300)}
+  .ping{position:relative;display:inline-flex;width:10px;height:10px}
+  .ping .ring{position:absolute;inset:0;border-radius:999px;background:#34d399;animation:ping 1.6s cubic-bezier(0,0,.2,1) infinite}
+  .ping .core{position:relative;width:10px;height:10px;border-radius:999px;background:#34d399}
+  @keyframes ping{0%{transform:scale(1);opacity:.7}80%,100%{transform:scale(2.2);opacity:0}}
+  .foot-links{display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:8px;font-family:var(--mono);font-size:12px;color:var(--z500)}
+  .foot-links a:hover{color:var(--z200)}
+  .foot-links .sep{color:var(--z700)}
+  .foot-fine{font-family:var(--mono);font-size:12px;color:var(--z600)}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <svg class="shell-line" aria-hidden="true"><rect x="0.5" y="0.5" width="99.9%" height="99.7%" rx="10"/></svg>
+  <div class="shell-chips">
+    <span class="shell-chip arrow">›</span>
+    <span class="shell-chip">s3://</span>
+    <span class="shell-chip">⌄</span>
+  </div>
+  <div class="scroller">
+
+    <section id="top" class="px" style="overflow:hidden">
+      <div class="hero-inner">
+        <h1>Bucket List<br><em>Lightweight search for S3.</em></h1>
+        <p class="hero-sub">One sweep of an AWS account becomes a single offline HTML file: every bucket and folder, what it costs, what's largest, and instant search across all of it.</p>
+
+        <div class="install-row">
+          <button class="copyblock" data-cmd="npx @nysgpt/bucket-list --open">
+            <span class="lead"><span class="dollar">$</span><span class="cmd">npx @nysgpt/bucket-list --open</span></span><span class="act">npm</span>
+          </button>
+          <button class="copyblock" data-cmd="uvx --from nysgpt-bucket-list bucket-list --open">
+            <span class="lead"><span class="dollar">$</span><span class="cmd">uvx --from nysgpt-bucket-list bucket-list --open</span></span><span class="act">pypi</span>
+          </button>
+          <button class="copyblock" data-cmd="git clone https://github.com/nyd-user-1/bucket-list && bucket-list/app/bin/bucket-list-app">
+            <span class="lead"><span class="dollar">$</span><span class="cmd">git clone https://github.com/nyd-user-1/bucket-list &amp;&amp; bucket-list/app/bin/bucket-list-app</span></span><span class="act">macOS app</span>
+          </button>
+        </div>
+        <a class="hero-new" href="https://github.com/nyd-user-1/bucket-list"><b>GitHub</b><span>nyd-user-1/bucket-list</span><i>→</i></a>
+      </div>
+
+      <div class="frame-wrap">
+        <div class="frame">
+          <div class="view">
+            <div class="apphead">
+              <span class="dot"></span>
+              <span class="n1">bucket-list.html</span><span class="sep">·</span><span class="n2">demo account</span>
+              <span class="live">click a row · try the search</span>
+            </div>
+            <iframe class="demo" src="demo.html" title="Bucket List report for a demo account" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="guardrail" class="px">
+      <div class="dash-inner" style="padding-top:0">
+        <h2 class="dash">Priced before it runs.</h2>
+        <p class="dash-sub">CloudWatch sizes the job first. Nothing is listed until the estimate is accepted.</p>
+        <div class="term"><pre><span class="c">$</span> <span class="b">bucket-list</span>
+<span class="dim">Discovering buckets in account 123456789012...</span>
+32 buckets, ~8,500,000 objects, ~2.1 TB <span class="dim">(CloudWatch estimate).</span>
+Sweep will make ~10,300 LIST requests: <span class="y">~$0.05</span>, roughly 6 min.
+Proceed? [y/N] <span class="b">y</span>
+<span class="dim">  [1/32] acme-terraform-state</span>
+<span class="dim">  ...</span>
+<span class="dim">  [32/32] acme-media-uploads</span>
+
+<span class="ok">Swept 8,512,904 objects (2.1 TB) across 32 buckets in 5m 41s.</span>
+/Users/you/bucket-list.html</pre></div>
+      </div>
+    </section>
+
+    <section id="how" class="px">
+      <div class="dash-inner" style="padding-top:0">
+        <h2 class="dash">Read-only, end to end.</h2>
+        <p class="dash-sub">Four steps, each a plain AWS CLI call. Names, sizes, and dates only: no object is downloaded or modified.</p>
+
+        <div class="wall">
+          <div class="pane" style="border-color:#2563eb">
+            <span class="pane-chip" style="background:#2563eb"><i></i>Discover</span>
+            <div class="pane-head"><span class="dot" style="background:#60a5fa"></span><span class="proj">bucket-list</span><span class="sess" style="color:var(--ink-blue)">every bucket, its region</span></div>
+            <div class="pane-body">
+              <div class="step"><span class="a">›</span><span class="k">S3API</span><span class="t">list-buckets</span></div>
+              <div class="step"><span class="a">›</span><span class="k">S3API</span><span class="t">get-bucket-location, per bucket</span></div>
+              <div class="step"><span class="a">›</span><span class="k">STS</span><span class="t">get-caller-identity</span></div>
+            </div>
+            <div class="pane-status" style="color:var(--ink-blue)">● <span class="g">inaccessible buckets are skipped with a warning</span></div>
+          </div>
+          <div class="pane" style="border-color:#f59e0b">
+            <span class="pane-chip" style="background:#d97706"><i></i>Estimate</span>
+            <div class="pane-head"><span class="dot" style="background:#fbbf24"></span><span class="proj">bucket-list</span><span class="sess" style="color:var(--ink-amber)">objects, bytes, $/month</span></div>
+            <div class="pane-body">
+              <div class="step"><span class="a">›</span><span class="k">CLOUDWATCH</span><span class="t">get-metric-data, 50 buckets per call</span></div>
+              <div class="step"><span class="a">›</span><span class="k">PRICE</span><span class="t">per storage class, list prices</span></div>
+              <div class="step"><span class="a">›</span><span class="k">ASK</span><span class="t">Proceed? [y/N]</span></div>
+            </div>
+            <div class="pane-status" style="color:var(--ink-amber)">● <span class="g">about five cents per 10 million objects</span></div>
+          </div>
+          <div class="pane" style="border-color:#22c55e">
+            <span class="pane-chip" style="background:#16a34a"><i></i>Sweep</span>
+            <div class="pane-head"><span class="dot" style="background:#4ade80"></span><span class="proj">bucket-list</span><span class="sess" style="color:var(--ink-green)">folders split into parallel walks</span></div>
+            <div class="pane-body">
+              <div class="step"><span class="a">›</span><span class="k">S3API</span><span class="t">list-objects-v2 --delimiter /</span></div>
+              <div class="step"><span class="a">›</span><span class="k">S3</span><span class="t">ls --recursive, streamed, for deep or wide folders</span></div>
+              <div class="step"><span class="a">›</span><span class="k">POOL</span><span class="t">12 concurrent calls across all buckets</span></div>
+            </div>
+            <div class="pane-status" style="color:rgba(52,211,153,.9)">● <span class="g">Glacier objects list without a restore</span></div>
+          </div>
+          <div class="pane" style="border-color:#f97316">
+            <span class="pane-chip" style="background:#ea580c"><i></i>Render</span>
+            <div class="pane-head"><span class="dot" style="background:#fb923c"></span><span class="proj">bucket-list</span><span class="sess" style="color:var(--ink-orange)">one self-contained file</span></div>
+            <div class="pane-body">
+              <div class="step"><span class="a">›</span><span class="k">PAGES</span><span class="t">account → bucket → folder</span></div>
+              <div class="step"><span class="a">›</span><span class="k">FAMILIES</span><span class="t">IMG_#.jpg ×1,240,118, digits collapse to #</span></div>
+              <div class="step"><span class="a">›</span><span class="k">VERSIONS</span><span class="t">flags buckets hiding old versions</span></div>
+            </div>
+            <div class="pane-status" style="color:var(--ink-orange)">● <span class="g">works offline, light and dark</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="principle">
+      <div class="big">no sdk <span class="w">·</span> no ai <span class="w">·</span> no telemetry <span class="w">·</span> nothing modified</div>
+    </div>
+
+    <footer>
+      <div class="foot-inner">
+        <div class="foot-brand"><span class="ping"><span class="ring"></span><span class="core"></span></span> bucket-list</div>
+        <div class="foot-links">
+          <a href="https://github.com/nyd-user-1/bucket-list">github</a><span class="sep">/</span>
+          <a href="https://www.npmjs.com/package/@nysgpt/bucket-list">npm</a><span class="sep">/</span>
+          <a href="https://pypi.org/project/nysgpt-bucket-list/">pypi</a>
+        </div>
+        <div class="foot-fine">MIT License · 2026</div>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<script>
+  for (const b of document.querySelectorAll(".copyblock")) {
+    b.addEventListener("click", () => {
+      navigator.clipboard.writeText(b.dataset.cmd);
+      b.classList.add("copied");
+      setTimeout(() => b.classList.remove("copied"), 1200);
+    });
+  }
+</script>
+
+</body>
+</html>

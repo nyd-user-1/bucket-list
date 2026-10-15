@@ -98,6 +98,7 @@ them.
 bin/, lib/      the npm package and the shared JS engine
 python/         the PyPI package (stdlib-only port of lib/)
 app/            the macOS desktop app (native window over lib/)
+site/           the landing page (static, Amplify)
 ```
 
 ## License
